@@ -221,6 +221,24 @@ function removeOutliersWithZscore(arr: number[]) {
 	});
 }
 
+function calculateSpeedAndIntervals(measurements: number[], timestamps: number[]) {
+	const intervals = [];
+	const speeds = [];
+
+	for (let i = 1; i < measurements.length; i++) {
+		const distance = Math.abs(measurements[i] - measurements[i - 1]);
+		const timeInterval = (timestamps[i] - timestamps[i - 1]) / 1000;
+		intervals.push(timeInterval);
+		if (timeInterval > 0) {
+			const speed = distance / timeInterval;
+			speeds.push(speed);
+		} else {
+			speeds.push(0);
+		}
+	}
+	return { intervals, speeds };
+}
+
 async function encryptPayload(nonce: string, payload: any) {
 	const getKey = async (nonce: string, timestamp: string, transactionId: string) => {
 		const data = nonce + timestamp + transactionId;
@@ -391,6 +409,30 @@ async function verify(qrCodeUrlStr: string) {
 	const primaryOutputs = removeOutliersWithZscore(raws.map((r) => amap(r)));
 	const outputs = removeOutliersWithZscore(primaryOutputs);
 
+	const gestureMeasurementTime = Date.now();
+	const recordedMeasurements: number[] = Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17));
+	const recordedTimestamps: number[] = [
+		randomInt(500, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(700, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(1000, Math.min(completionTime, 1400)) - gestureMeasurementTime,
+		randomInt(1400, Math.min(completionTime, 1600)) - gestureMeasurementTime,
+		randomInt(1600, Math.min(completionTime, 1800)) - gestureMeasurementTime
+	];
+	const { speeds: recordedSpeeds, intervals: recordedIntervals } = calculateSpeedAndIntervals(
+		recordedMeasurements,
+		recordedTimestamps
+	);
+
+	const failedMeasurements: number[] = Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17));
+	const failedTimestamps: number[] = [
+		randomInt(500, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(700, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(1000, Math.min(completionTime, 1400)) - gestureMeasurementTime,
+		randomInt(1400, Math.min(completionTime, 1600)) - gestureMeasurementTime
+	];
+	const { speeds: failedOpennessSpeeds, intervals: failedOpennessIntervals } =
+		calculateSpeedAndIntervals(failedMeasurements, failedTimestamps);
+
 	let payload = {
 		request_type: 'complete_transaction',
 		transaction_id: sessionData.transaction_id,
@@ -428,12 +470,12 @@ async function verify(qrCodeUrlStr: string) {
 			},
 			ageCheckSession: '-' + randomInt(1000000000, 9999999999),
 			miscellaneous: {
-				recordedOpennessStreak: Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17)),
-				recordedSpeeds: Array.from({ length: 5 }, () => randomFloat(0.2, 1.5, 17)),
-				recordedIntervals: Array.from({ length: 5 }, () => randomFloat(0.1, 0.2, 3)),
-				failedOpennessReadings: [],
-				failedOpennessSpeeds: [],
-				failedOpennessIntervals: [],
+				recordedOpennessStreak: recordedMeasurements,
+				recordedSpeeds,
+				recordedIntervals,
+				failedOpennessReadings: [failedMeasurements],
+				failedOpennessSpeeds: [failedOpennessSpeeds],
+				failedOpennessIntervals: [failedOpennessIntervals],
 				numberOfGestureRetries: 1,
 				antiSpoofConfidences: [],
 				fp_scores: [],

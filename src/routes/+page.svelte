@@ -224,6 +224,23 @@ window.location.href = `https://age-verifier.kibty.town/webview?url=$&lcub;encod
 		<li>it is checked if the states completion times match the state timeline</li>
 	</ul>
 
+	<h3 class="mt-8 text-xl font-bold">the (failed) patch</h3>
+	<p>
+		after the initial release, k-id's provider for face scans, privately added a patch to this
+		script. however, the patch wasn't sufficient enough and we bypassed it. <span
+			class="text-white/50">(so the script works again!)</span
+		>
+		<br />
+		<br />
+		the patch was the fact they started checking
+		<code class="bg-white/20 text-blue-400">recordedOpennessStreak</code>,
+		<code class="bg-white/20 text-blue-400">recordedSpeeds</code>,
+		<code class="bg-white/20 text-blue-400">failedOpennessReadings</code>,
+		<code class="bg-white/20 text-blue-400">failedOpennessSpeeds</code> and
+		<code class="bg-white/20 text-blue-400">failedOpennessIntervals</code> to be valid by checking the
+		values referencing eachother server-side.
+	</p>
+
 	<p>
 		<br />
 		with all of that done,

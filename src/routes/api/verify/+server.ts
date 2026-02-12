@@ -2,8 +2,8 @@ import type { RequestEvent } from './$types';
 import { Buffer } from 'node:buffer';
 
 const BASE_URL = 'https://eu-west-1.faceassure.com';
-const K_ID_DEPLOYMENT_ID = '20260210222654-016f063-production';
-const K_ID_PRIVATELY_ACTION_ID = '408838ce2bed4d4db2ae2194cc41cc46d6008d1872';
+const K_ID_DEPLOYMENT_ID = '20260212140105-844bfe6-production';
+const K_ID_PRIVATELY_ACTION_ID = '40de01bcd91fb9eca64577583af431a0a7ef9e8dbb';
 const K_ID_NEXT_ROUTER_TREE =
 	'%5B%22%22%2C%7B%22children%22%3A%5B%22verify%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D';
 const PRIVATELY_URL_REGEX = /(https:\/\/[a-z0-9]+\.cloudfront\.net\/.*)(?=:\{)/;
@@ -236,6 +236,24 @@ function removeOutliersWithZscore(arr: number[]) {
 	});
 }
 
+function calculateSpeedAndIntervals(measurements: number[], timestamps: number[]) {
+	const intervals = [];
+	const speeds = [];
+
+	for (let i = 1; i < measurements.length; i++) {
+		const distance = Math.abs(measurements[i] - measurements[i - 1]);
+		const timeInterval = (timestamps[i] - timestamps[i - 1]) / 1000;
+		intervals.push(timeInterval);
+		if (timeInterval > 0) {
+			const speed = distance / timeInterval;
+			speeds.push(speed);
+		} else {
+			speeds.push(0);
+		}
+	}
+	return { intervals, speeds };
+}
+
 async function encryptPayload(nonce: string, payload: any) {
 	const getKey = async (nonce: string, timestamp: string, transactionId: string) => {
 		const data = nonce + timestamp + transactionId;
@@ -408,6 +426,30 @@ async function verify(
 	const primaryOutputs = removeOutliersWithZscore(raws.map((r) => amap(r)));
 	const outputs = removeOutliersWithZscore(primaryOutputs);
 
+	const gestureMeasurementTime = Date.now();
+	const recordedMeasurements: number[] = Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17));
+	const recordedTimestamps: number[] = [
+		randomInt(500, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(700, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(1000, Math.min(completionTime, 1400)) - gestureMeasurementTime,
+		randomInt(1400, Math.min(completionTime, 1600)) - gestureMeasurementTime,
+		randomInt(1600, Math.min(completionTime, 1800)) - gestureMeasurementTime
+	];
+	const { speeds: recordedSpeeds, intervals: recordedIntervals } = calculateSpeedAndIntervals(
+		recordedMeasurements,
+		recordedTimestamps
+	);
+
+	const failedMeasurements: number[] = Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17));
+	const failedTimestamps: number[] = [
+		randomInt(500, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(700, Math.min(completionTime, 1000)) - gestureMeasurementTime,
+		randomInt(1000, Math.min(completionTime, 1400)) - gestureMeasurementTime,
+		randomInt(1400, Math.min(completionTime, 1600)) - gestureMeasurementTime
+	];
+	const { speeds: failedOpennessSpeeds, intervals: failedOpennessIntervals } =
+		calculateSpeedAndIntervals(failedMeasurements, failedTimestamps);
+
 	let payload = {
 		request_type: 'complete_transaction',
 		transaction_id: sessionData.transaction_id,
@@ -445,12 +487,12 @@ async function verify(
 			},
 			ageCheckSession: '-' + randomInt(1000000000, 9999999999),
 			miscellaneous: {
-				recordedOpennessStreak: Array.from({ length: 5 }, () => randomFloat(0.1, 0.8, 17)),
-				recordedSpeeds: Array.from({ length: 5 }, () => randomFloat(0.2, 1.5, 17)),
-				recordedIntervals: Array.from({ length: 5 }, () => randomFloat(0.1, 0.2, 3)),
-				failedOpennessReadings: [],
-				failedOpennessSpeeds: [],
-				failedOpennessIntervals: [],
+				recordedOpennessStreak: recordedMeasurements,
+				recordedSpeeds,
+				recordedIntervals,
+				failedOpennessReadings: [failedMeasurements],
+				failedOpennessSpeeds: [failedOpennessSpeeds],
+				failedOpennessIntervals: [failedOpennessIntervals],
 				numberOfGestureRetries: 1,
 				antiSpoofConfidences: [],
 				fp_scores: [],

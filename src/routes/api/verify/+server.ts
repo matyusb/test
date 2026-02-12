@@ -22,6 +22,15 @@ const randomFloat = (min: number, max: number, decimals = 15) =>
 	parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
 const randomChoice = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
+function generateId(id: string, sub: string, sessionId: string, delimiter = '|') {
+	let s = 0;
+	for (let a = '' + id + delimiter + sub + delimiter + sessionId, i = 0; i < a.length; i++) {
+		s = (s << 5) - s + a.charCodeAt(i);
+		s &= s;
+	}
+	return '' + s;
+}
+
 function generateUserAgent() {
 	const agents = [
 		'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
@@ -118,7 +127,7 @@ function getRandomLocation() {
 	return locations[Math.floor(Math.random() * locations.length)];
 }
 
-function generateMediaMetadata() {
+function generateMediaMetadata(sub: string, sessionId: string) {
 	const randomHex = () =>
 		Array.from({ length: 32 }, () =>
 			Math.floor(Math.random() * 16)
@@ -158,7 +167,7 @@ function generateMediaMetadata() {
 	];
 
 	const spec = randomChoice(specs);
-	const deviceId = randomHex();
+	const deviceId = generateId(randomHex(), sub, sessionId, '-');
 
 	return [
 		{
@@ -320,7 +329,6 @@ async function verify(
 	token: string
 ) {
 	const parsedUserAgent = parseUserAgent(userAgent);
-	const mediaMetadata = generateMediaMetadata();
 
 	const commonHeaders = {
 		'User-Agent': userAgent,
@@ -450,6 +458,25 @@ async function verify(
 	const { speeds: failedOpennessSpeeds, intervals: failedOpennessIntervals } =
 		calculateSpeedAndIntervals(failedMeasurements, failedTimestamps);
 
+	const stateTimelines = generateStateTimelines(completionTime);
+	const stateCompletionTimes: Record<string, number> = {};
+	for (const [key, timeline] of Object.entries(stateTimelines)) {
+		if (timeline.length < 1) continue;
+		let completionTime = 0;
+		for (const time of timeline) {
+			completionTime += time.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+		}
+
+		stateCompletionTimes[key] = completionTime;
+	}
+	const mediaMetadata = generateMediaMetadata(jwtPayload.sub, sessionData.session_id);
+
+	const ageCheckSession = generateId(
+		mediaMetadata.find((m) => m.mediaKind === 'videoinput')!.mediaId,
+		jwtPayload.sub,
+		sessionData.session_id
+	);
+
 	let payload = {
 		request_type: 'complete_transaction',
 		transaction_id: sessionData.transaction_id,
@@ -485,7 +512,7 @@ async function verify(
 				ver: 'v1.10.22',
 				ufi: []
 			},
-			ageCheckSession: '-' + randomInt(1000000000, 9999999999),
+			ageCheckSession: ageCheckSession,
 			miscellaneous: {
 				recordedOpennessStreak: recordedMeasurements,
 				recordedSpeeds,
@@ -564,8 +591,8 @@ async function verify(
 				sdk_path: './face-capture-v1.10.22.js',
 				model_version: 'v.2025.0',
 				cropper_version: 'v.0.0.3',
-				start_time_stamp: currentTime - randomFloat(20, 60),
-				end_time_stamp: currentTime,
+				start_time_stamp: currentTime + Number(Math.random().toFixed(3)),
+				end_time_stamp: currentTime + completionTime + Number(Math.random().toFixed(3)),
 				device_timezone: location.timezone,
 				referring_page: `https://d3ogqhtsivkon3.cloudfront.net/?token=${token}&shi=false&from_qr_scan=true`,
 				parent_page: `https://d3ogqhtsivkon3.cloudfront.net/dynamic_index.html?sl=${jwtPayload.jti}&region=eu-central-1`,
@@ -620,7 +647,7 @@ async function verify(
 				initializationCharacteristics: {
 					cropperInitTime: randomInt(150, 250),
 					coreInitTime: randomInt(800, 1000),
-					pageLoadTime: randomInt(250, 350),
+					pageLoadTime: randomInt(250, 350) + Number(Math.random().toFixed(randomInt(7, 13))),
 					from_qr_scan: false,
 					blendShapesAvailable: true
 				},
@@ -656,7 +683,8 @@ async function verify(
 					},
 					isCameraPermissionGranted: true,
 					completionTime,
-					deferredComputationStartedAt: randomInt(10000, 14000),
+					deferredComputationStartedAt:
+						randomInt(10000, 14000) + Number(Math.random().toFixed(randomInt(1, 3))),
 					instructionCompletionTime: randomInt(10000, 14000),
 					initialAdjustmentTime: randomInt(10000, 14000),
 					completionState: 'COMPLETE',
@@ -682,33 +710,8 @@ async function verify(
 							'TOO_DARK'
 						].map((k) => [k, false])
 					),
-					// "stateCompletionTimes": {
-					//   "TIME_UNTIL_CLICK_START": 2342,
-					//   "GET_READY": 1130,
-					//   "NO_FACE": 7132,
-					//   "CENTRE_FACE": 551,
-					//   "TOO_DARK": 29998,
-					//   "TURN_LEFT": 30133,
-					//   "LOOK_STRAIGHT": 441,
-					//   "SLOWLY_DISTANCE_YOURSELF_FROM_THE_CAMERA": 0,
-					//   "SLOWLY_COME_CLOSER_TO_THE_CAMERA": 1546,
-					//   "CLOSE_YOUR_MOUTH": 1813,
-					//   "KEEP_YOUR_MOUTH_OPEN": 9686
-					// },
-					stateCompletionTimes: {
-						TIME_UNTIL_CLICK_START: randomInt(800, 3200),
-						GET_READY: randomInt(1200, 4000),
-						NO_FACE: randomInt(2000, 5500),
-						CENTRE_FACE: randomInt(8000, 18000),
-						TOO_DARK: randomInt(1500, 3500),
-						TURN_LEFT: randomInt(3000, 8500),
-						LOOK_STRAIGHT: randomInt(100, 800),
-						SLOWLY_DISTANCE_YOURSELF_FROM_THE_CAMERA: 0,
-						SLOWLY_COME_CLOSER_TO_THE_CAMERA: randomInt(800, 3500),
-						CLOSE_YOUR_MOUTH: randomInt(1800, 5200),
-						KEEP_YOUR_MOUTH_OPEN: randomInt(3500, 9000)
-					},
-					stateTimelines: generateStateTimelines(completionTime),
+					stateCompletionTimes,
+					stateTimelines,
 					nonNeutralExpressionTimelines: Object.fromEntries(
 						[
 							'browDownLeft',

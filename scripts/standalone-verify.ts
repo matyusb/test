@@ -770,9 +770,6 @@ async function verify(qrCodeUrlStr: string) {
 	const encryptionData = await encryptPayload(sessionData.nonce, payload);
 	payload = Object.assign(payload, encryptionData);
 
-	Deno.writeTextFileSync('genned-payload.json', JSON.stringify(payload, null, 2));
-	return;
-
 	const completeRes = await fetch(`${BASE_URL}/age-services/d-privately-age-services`, {
 		method: 'POST',
 		headers: {

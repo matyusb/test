@@ -473,6 +473,11 @@ async function verify(qrCodeUrlStr: string) {
 		sessionData.session_id
 	);
 
+	const laplacianBlurScores = Array.from({ length: 300 }, () => randomFloat(10, 300, 15));
+	const laplacianMinScore = Math.min(...laplacianBlurScores);
+	const laplacianMaxScore = Math.max(...laplacianBlurScores);
+	const laplacianAvgScore = laplacianBlurScores.reduce((sum, score) => sum + score) / laplacianBlurScores.length;
+
 	let payload = {
 		request_type: 'complete_transaction',
 		transaction_id: sessionData.transaction_id,
@@ -519,10 +524,10 @@ async function verify(qrCodeUrlStr: string) {
 				numberOfGestureRetries: 1,
 				antiSpoofConfidences: [],
 				fp_scores: [],
-				laplacian_blur_scores: Array.from({ length: 300 }, () => randomFloat(10, 300, 15)),
-				laplacian_min_score: randomFloat(10, 50),
-				laplacian_max_score: randomFloat(300, 350),
-				laplacian_avg_score: randomFloat(50, 100),
+				laplacian_blur_scores: laplacianBlurScores,
+				laplacian_min_score: laplacianMinScore,
+				laplacian_max_score: laplacianMaxScore,
+				laplacian_avg_score: laplacianAvgScore,
 				glare_ratios: Array.from({ length: 300 }, () => 0),
 				allScreenDetectionDetails: {
 					beforeClickingStart: {
@@ -590,8 +595,8 @@ async function verify(qrCodeUrlStr: string) {
 				start_time_stamp: currentTime + Number(Math.random().toFixed(3)),
 				end_time_stamp: currentTime + completionTime + Number(Math.random().toFixed(3)),
 				device_timezone: location.timezone,
-				referring_page: `https://d3ogqhtsivkon3.cloudfront.net/index-v1.10.22.html#/?token=${token}`,
-				parent_page: `https://d3ogqhtsivkon3.cloudfront.net/?token=${token}`,
+				referring_page: `https://d3ogqhtsivkon3.cloudfront.net/index-v1.10.22.html#/?token=${token}&shi=false&from_qr_scan=true`,
+				parent_page: `https://d3ogqhtsivkon3.cloudfront.net/dynamic_index.html?sl=${jwtPayload.jti}&region=eu-central-1`,
 				face_confidence_limit: 0.975,
 				multipleFacesDetected: false,
 				targetGate: 18,
@@ -644,7 +649,7 @@ async function verify(qrCodeUrlStr: string) {
 					cropperInitTime: randomInt(150, 250),
 					coreInitTime: randomInt(800, 1000),
 					pageLoadTime: randomInt(250, 350) + Number(Math.random().toFixed(randomInt(7, 13))),
-					from_qr_scan: false,
+					from_qr_scan: true,
 					blendShapesAvailable: true
 				},
 				executionCharacteristics: {

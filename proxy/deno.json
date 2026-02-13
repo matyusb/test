@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "hono": "npm:hono@^4.11.9",
+    "zod": "npm:zod",
+    "@hono/zod-validator": "npm:@hono/zod-validator"
+  }
+}

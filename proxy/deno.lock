@@ -1,0 +1,30 @@
+{
+  "version": "5",
+  "specifiers": {
+    "npm:@hono/zod-validator@*": "0.7.6_hono@4.11.9_zod@4.3.6",
+    "npm:hono@^4.11.9": "4.11.9",
+    "npm:zod@*": "4.3.6"
+  },
+  "npm": {
+    "@hono/zod-validator@0.7.6_hono@4.11.9_zod@4.3.6": {
+      "integrity": "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==",
+      "dependencies": [
+        "hono",
+        "zod"
+      ]
+    },
+    "hono@4.11.9": {
+      "integrity": "sha512-Eaw2YTGM6WOxA6CXbckaEvslr2Ne4NFsKrvc0v97JD5awbmeBLO5w9Ho9L9kmKonrwF9RJlW6BxT1PVv/agBHQ=="
+    },
+    "zod@4.3.6": {
+      "integrity": "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "npm:@hono/zod-validator@*",
+      "npm:hono@^4.11.9",
+      "npm:zod@*"
+    ]
+  }
+}

@@ -476,7 +476,8 @@ async function verify(qrCodeUrlStr: string) {
 	const laplacianBlurScores = Array.from({ length: 300 }, () => randomFloat(10, 300, 15));
 	const laplacianMinScore = Math.min(...laplacianBlurScores);
 	const laplacianMaxScore = Math.max(...laplacianBlurScores);
-	const laplacianAvgScore = laplacianBlurScores.reduce((sum, score) => sum + score) / laplacianBlurScores.length;
+	const laplacianAvgScore =
+		laplacianBlurScores.reduce((sum, score) => sum + score) / laplacianBlurScores.length;
 
 	let payload = {
 		request_type: 'complete_transaction',
@@ -685,9 +686,9 @@ async function verify(qrCodeUrlStr: string) {
 					isCameraPermissionGranted: true,
 					completionTime,
 					deferredComputationStartedAt:
-						randomInt(10000, 14000) + Number(Math.random().toFixed(randomInt(1, 3))),
+						currentTime + randomInt(20, 80) + Number(Math.random().toFixed(randomInt(1, 3))),
 					instructionCompletionTime: randomInt(10000, 14000),
-					initialAdjustmentTime: randomInt(10000, 14000),
+					initialAdjustmentTime: randomInt(100, 500),
 					completionState: 'COMPLETE',
 					unfinishedInstructions: Object.fromEntries(
 						[
